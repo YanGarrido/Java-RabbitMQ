@@ -6,7 +6,7 @@ import com.rabbitmq.client.DeliverCallback;
 import java.util.Map;
 
 public class Worker{
-    private final static String QUEUE_NAME = "hello";
+    private final static String TASK_QUEUE_NAME = "hello";
 
     public static void main(String[] argv) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
@@ -14,6 +14,7 @@ public class Worker{
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
         System.out.println("[*] Waiting for messages. To exit  press CTRL+C");
+        channel.basicQos(1);
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), "UTF-8");
@@ -22,10 +23,11 @@ public class Worker{
                 doWork(message);
             } finally {
                 System.out.println(" [x] Done");
+                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             }
         };
-        boolean autoAck = true;
-        channel.basicConsume(QUEUE_NAME, autoAck,deliverCallback,consumerTag ->{ });
+        boolean autoAck = false;
+        channel.basicConsume(TASK_QUEUE_NAME, autoAck,deliverCallback,consumerTag ->{ });
 
     }
     private static void doWork(String task) {
